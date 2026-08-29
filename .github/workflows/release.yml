@@ -21,12 +21,11 @@ jobs:
 
       - name: Install Vulkan SDK & tooling
         run: |
+          # 全部来自 homebrew-core，避免第三方 tap（unstable 的 lunar/vulkan 在此环境拉不下来）
           brew install glslang
-          brew tap lunar/vulkan
-          brew install vulkan-sdk
-          # 让 CMake/着色器工具能定位到 Vulkan
-          export SDK=$(brew --prefix vulkan-sdk)
-          echo "VULKAN_SDK=$SDK" >> "$GITHUB_ENV"
+          brew install vulkan-loader vulkan-headers molten-vk
+          # 让 CMake / Future glslangValidator 能找到 Vulkan loader 与头文件
+          echo "VULKAN_SDK=$(brew --prefix)" >> "$GITHUB_ENV"
 
       - name: Configure & Build
         run: |
