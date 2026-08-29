@@ -4,6 +4,14 @@ A macOS task-manager UI built with **Vulkan** and **GLFW**, styled after the Win
 
 > Currently targeting macOS (Apple Silicon / Intel), running Vulkan through MoltenVK.
 
+**Performance page** (Overview):
+
+![Performance](P1.png)
+
+**Processes page**:
+
+![Processes](P2.png)
+
 ## Motivation
 
 The built-in macOS **Activity Monitor** cannot distinguish between **foreground and background apps** (all processes are listed together), and per-process CPU / memory / disk usage is shown as **raw numbers only**, making it hard to see at a glance which app is consuming resources.
@@ -76,6 +84,14 @@ src/
 一款基于 **Vulkan** 与 **GLFW** 构建的 macOS 任务管理器界面。采用自研即时模式绘图与轻量弹性布局引擎，整体仿 Windows 11 任务管理器风格，性能出色、交互流畅。**界面语言自动跟随 macOS 系统语言**（中文系统显示中文，英文系统显示英文）。
 
 > 目前主要面向 macOS（Apple Silicon / Intel），通过 MoltenVK 运行 Vulkan。
+
+**性能页**（概览）：
+
+![性能页](P1.png)
+
+**进程页**：
+
+![进程页](P2.png)
 
 ## 项目动机
 
