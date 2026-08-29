@@ -41,6 +41,7 @@ constexpr Color kBlueDark     = {0.255f, 0.608f, 0.980f, 1.0f};
 constexpr Color kGreenDark    = {0.200f, 0.740f, 0.420f, 1.0f};
 constexpr Color kSColorDark   = {0.620f, 0.470f, 0.940f, 1.0f};
 constexpr Color kYellowDark   = {0.980f, 0.720f, 0.220f, 1.0f};
+constexpr Color kOrangeDark   = {0.980f, 0.580f, 0.160f, 1.0f};
 constexpr Color kRedDark      = {0.910f, 0.360f, 0.360f, 1.0f};
 constexpr Color kPurpleDark   = {0.620f, 0.470f, 0.940f, 1.0f};
 constexpr Color kBoxBgDark    = {0.129f, 0.129f, 0.137f, 1.0f};
@@ -64,8 +65,7 @@ constexpr Color kTrackLight    = {0.851f, 0.851f, 0.863f, 1.0f};
 constexpr Color kBlueLight     = {0.0f, 0.478f, 1.0f, 1.0f};
 constexpr Color kGreenLight    = {0.204f, 0.780f, 0.349f, 1.0f};
 constexpr Color kSColorLight   = {0.686f, 0.322f, 0.871f, 1.0f};
-constexpr Color kYellowLight   = {1.0f, 0.624f, 0.039f, 1.0f};
-constexpr Color kRedLight      = {1.0f, 0.231f, 0.188f, 1.0f};
+constexpr Color kYellowLight   = {1.0f, 0.624f, 0.039f, 1.0f};constexpr Color kOrangeLight  = {1.0f, 0.520f, 0.100f, 1.0f};constexpr Color kRedLight      = {1.0f, 0.231f, 0.188f, 1.0f};
 constexpr Color kPurpleLight   = {0.686f, 0.322f, 0.871f, 1.0f};
 constexpr Color kBoxBgLight    = {0.961f, 0.961f, 0.965f, 1.0f};
 constexpr Color kDividerLight  = {0.0f, 0.0f, 0.0f, 0.12f};
@@ -75,7 +75,7 @@ constexpr Color kRefLineLight = {0.0f, 0.0f, 0.0f, 0.14f};  // 图表参考线�
 // Active palette, refreshed by theme::update() from the system appearance
 extern Color kNavBg, kCardBg, kBorder, kShadow, kRowBg, kRowAltBg, kHeadBg, kSelBg,
              kText, kSubText, kDimText, kAccent, kHoverBg, kTrack, kBlue, kGreen,
-             kSColor, kYellow, kRed, kPurple, kBoxBg, kDivider, kRefLine;
+             kSColor, kYellow, kOrange, kRed, kPurple, kBoxBg, kDivider, kRefLine;
 
 // 根据系统深浅色模式刷新当前配色；system_dark_mode 由 theme.cpp 实现
 // （隔离 CoreFoundation，避免其 Point/Rect 与项目类型冲突）

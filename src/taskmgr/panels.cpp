@@ -21,7 +21,11 @@ void OverviewPanel::draw(Renderer& r) {
 
     // 无标题栏：设备列表直接绘制；详情区顶部自绘设备名小标题
     draw_device_list(r);
-    std::string dev_title = dev_sel_ == 0 ? cpu_.model : dev_sel_ == 1 ? fmt_bytes(ov_.mem_total) : gpu_.name;
+    std::string dev_title =
+        dev_sel_ == 0 ? cpu_.model :
+        dev_sel_ == 1 ? fmt_bytes(ov_.mem_total) :
+        dev_sel_ == 2 ? tr("磁盘", "Disk") :
+        gpu_.name;
     draw_text_in_rect(r, Rect{layout_.dev_detail.x, layout_.dev_detail.y, layout_.dev_detail.w, 30}, dev_title, 18, kText, 0);
     draw_device_detail(r, Rect{layout_.dev_detail.x, layout_.dev_detail.y + 36, layout_.dev_detail.w, layout_.dev_detail.h - 36});
 }
@@ -31,10 +35,9 @@ void OverviewPanel::draw_device_list(Renderer& r) {
     auto& ov_ = owner_.ov_;
     auto& layout_ = owner_.layout_;
     auto& dev_sel_ = owner_.dev_sel_;
-    auto& hover_dev_ = owner_.hover_dev_;
     auto& charts_ = owner_.charts_;
 
-    const char* names[3] = {"CPU", tr("内存", "Memory"), "GPU"};
+    const char* names[4] = {"CPU", tr("内存", "Memory"), tr("磁盘", "Disk"), "GPU"};
     // CPU 当前值：取所有逻辑核平均；无数据则显示 0
     double cpu_t = 0;
     if (!hist_.core_hist.empty()) {
@@ -43,15 +46,14 @@ void OverviewPanel::draw_device_list(Renderer& r) {
         if (n) cpu_t = sum / n;
     }
     const double mem_t = ov_.mem_percent;
+    const double disk_t = ov_.disk_read_bs + ov_.disk_write_bs;  // 磁盘总速率（B/s）
     const double gpu_t = hist_.gpu_util;
-    const double cur[3] = {cpu_t, mem_t, gpu_t};
+    const double cur[4] = {cpu_t, mem_t, disk_t, gpu_t};
 
-    for (int i = 0; i < 3; ++i) {
+    for (int i = 0; i < 4; ++i) {
         const Rect it = layout_.dev_items[i];
         const bool sel = (i == dev_sel_);
-        const bool hov = (i == hover_dev_);
         if (sel) r.draw_rounded_rect(it, 8, kSelBg);
-        else if (hov) r.draw_rounded_rect(it, 8, kHoverBg);
         if (sel) r.draw_rounded_rect_ex(Rect{it.x, it.y + 8, 3, it.h - 16}, 1.5f, 1.5f, 1.5f, 1.5f, kAccent);
 
         // 项内布局：Row 容器（左侧缩略图 + 右侧文字列），无硬编码偏移
@@ -80,9 +82,17 @@ void OverviewPanel::draw_device_list(Renderer& r) {
             }
             charts_.draw_area_line(r, mini, agg, kBlue);
         } else if (i == 1) {
-            charts_.draw_area_line(r, mini, hist_.mem_hist, kBlue);
+            charts_.draw_area_line(r, mini, hist_.mem_hist, kPurple);
+        } else if (i == 2) {
+            // 磁盘迷你曲线：读 + 写速率合并
+            std::vector<float> dsum;
+            const size_t n = std::max(hist_.disk_read_hist.size(), hist_.disk_write_hist.size());
+            dsum.resize(n, 0);
+            for (size_t k = 0; k < hist_.disk_read_hist.size(); ++k) dsum[k] += hist_.disk_read_hist[k];
+            for (size_t k = 0; k < hist_.disk_write_hist.size(); ++k) dsum[k] += hist_.disk_write_hist[k];
+            charts_.draw_rate_line(r, mini, dsum, kGreen);
         } else {
-            charts_.draw_area_line(r, mini, hist_.gpu_hist, kPurple);
+            charts_.draw_area_line(r, mini, hist_.gpu_hist, kOrange);
         }
 
         // 右侧文字列：Column 容器（设备名 + 当前值）
@@ -91,7 +101,8 @@ void OverviewPanel::draw_device_list(Renderer& r) {
         tc.items = {{.size = 22}, {.size = 20, .mt = 3}};
         auto t = tc.layout(text_col);
         draw_text_in_rect(r, t[0], names[i], 15, sel ? kText : kSubText, 0);
-        draw_text_in_rect(r, t[1], fmt_percent(cur[i]), 14, kText, 0);
+        // 磁盘项显示速率，其余显示百分比
+        draw_text_in_rect(r, t[1], i == 2 ? fmt_bytes(cur[i]) + "/s" : fmt_percent(cur[i]), 14, kText, 0);
     }
 }
 
@@ -172,7 +183,7 @@ void OverviewPanel::draw_device_detail(Renderer& r, Rect rc) {
 
         r.draw_rounded_rect(usage, 2, kBoxBg);
         charts_.draw_reflines(r, usage, (int)hist_.mem_hist.size());
-        charts_.draw_area_line(r, usage, hist_.mem_hist, kAccent);
+        charts_.draw_area_line(r, usage, hist_.mem_hist, kPurple);
         draw_text_in_rect(r, Rect{usage.x + usage.w - 80, usage.y - 4, 76, 18}, fmt_bytes(ov_.mem_total), 12, kText, 2);
         draw_text_in_rect(r, Rect{usage.x, usage.y + usage.h + 2, 100, 16}, tr("60 秒", "60 s"), 11, kDimText, 0);
         draw_text_in_rect(r, Rect{usage.x + usage.w - 30, usage.y + usage.h + 2, 30, 16}, "0", 11, kDimText, 2);
@@ -211,6 +222,55 @@ void OverviewPanel::draw_device_detail(Renderer& r, Rect rc) {
                 fmt_bytes(ov_.mem_used + ov_.mem_cached) + " / " + fmt_bytes(ov_.mem_total),
                 fmt_bytes(ov_.mem_cached));
         mem_row(2, tr("App 内存", "App memory"), tr("联动内存", "Wired memory"), fmt_bytes(ov_.mem_app), fmt_bytes(ov_.mem_wired));
+    } else if (dev_sel_ == 2) {
+        // ===== 磁盘详情 =====
+        fl::Flex col;
+        col.dir = fl::Dir::Column;
+        col.pad = {4, 6, 4, 0};
+        col.items = {{.size = 20, .mb = 4},       // "磁盘使用"
+                     {.flex = 1, .mb = 26},       // 读/写速率图
+                     {.size = 18, .mb = 4},       // "读 / 写速率"
+                     {.size = 28, .mb = 18},      // 读/写占比条
+                     {.size = 3 * kMemRowH}};     // 统计区（三行）
+        auto c = col.layout(rc);
+        const Rect usage_label = c[0], usage = c[1], comp_label = c[2], comp = c[3], stats = c[4];
+        draw_text_in_rect(r, usage_label, tr("磁盘使用", "Disk usage"), 13, kDimText, 0);
+
+        r.draw_rounded_rect(usage, 2, kBoxBg);
+        charts_.draw_reflines(r, usage, (int)hist_.disk_read_hist.size());
+        charts_.draw_rate_line(r, usage, hist_.disk_read_hist, kGreen);
+        charts_.draw_rate_line(r, usage, hist_.disk_write_hist, kYellow);
+        draw_text_in_rect(r, Rect{usage.x + usage.w - 100, usage.y - 4, 96, 18}, fmt_bytes(ov_.disk_read_bs + ov_.disk_write_bs) + "/s", 12, kText, 2);
+        draw_text_in_rect(r, Rect{usage.x, usage.y + usage.h + 2, 100, 16}, tr("60 秒", "60 s"), 11, kDimText, 0);
+
+        draw_text_in_rect(r, comp_label, tr("读 / 写速率", "Read / Write rate"), 13, kDimText, 0);
+        const float rd = (float)ov_.disk_read_bs, wv = (float)ov_.disk_write_bs;
+        const float tot = rd + wv;
+        r.draw_rounded_rect(comp, 3, kTrack);
+        if (tot > 0.01f) {
+            const float fr = rd / tot;
+            r.draw_rect(Rect{comp.x, comp.y, comp.w * fr, comp.h}, kGreen);
+            r.draw_rect(Rect{comp.x + comp.w * fr, comp.y, comp.w * (1.0f - fr), comp.h}, kYellow);
+        }
+        r.draw_rounded_outline(comp, 3, kBorder, 1);
+
+        fl::Flex srow;
+        srow.dir = fl::Dir::Row;
+        srow.items = {{.flex = 1}, {.flex = 1}};
+        const float stat_cell_h = kStatLabelH + kStatGap + kStatValueH;
+        auto diskstat = [&](const Rect& cell, const std::string& label, const std::string& val) {
+            draw_text_in_rect(r, Rect{cell.x, cell.y, cell.w, kStatLabelH}, label, 13, kDimText, 0);
+            draw_text_in_rect(r, Rect{cell.x, cell.y + kStatLabelH + kStatGap, cell.w, kStatValueH}, val, 20, kText, 0);
+        };
+        auto disk_row = [&](int row, const std::string& a, const std::string& b, const std::string& va, const std::string& vb) {
+            auto rr = srow.layout(Rect{stats.x, stats.y + row * kMemRowH, stats.w, stat_cell_h});
+            diskstat(rr[0], a, va);
+            diskstat(rr[1], b, vb);
+        };
+        disk_row(0, tr("读速率", "Read"), tr("写速率", "Write"),
+                 fmt_bytes(ov_.disk_read_bs) + "/s", fmt_bytes(ov_.disk_write_bs) + "/s");
+        disk_row(1, tr("总速率", "Total"), tr("…", "…"),
+                 fmt_bytes(ov_.disk_read_bs + ov_.disk_write_bs) + "/s", "");
     } else {
         // ===== GPU 详情 =====
         fl::Flex col;
@@ -227,7 +287,7 @@ void OverviewPanel::draw_device_detail(Renderer& r, Rect rc) {
 
         r.draw_rounded_rect(usage, 2, kBoxBg);
         charts_.draw_reflines(r, usage, (int)hist_.gpu_hist.size());
-        charts_.draw_area_line(r, usage, hist_.gpu_hist, kPurple);
+        charts_.draw_area_line(r, usage, hist_.gpu_hist, kOrange);
         draw_text_in_rect(r, Rect{usage.x + usage.w - 80, usage.y - 4, 76, 18}, fmt_percent(hist_.gpu_util), 12, kText, 2);
         draw_text_in_rect(r, Rect{usage.x, usage.y + usage.h + 2, 100, 16}, tr("60 秒", "60 s"), 11, kDimText, 0);
         draw_text_in_rect(r, Rect{usage.x + usage.w - 30, usage.y + usage.h + 2, 30, 16}, "0", 11, kDimText, 2);
@@ -242,7 +302,7 @@ void OverviewPanel::draw_device_detail(Renderer& r, Rect rc) {
         const double gpu_mem = gpu_.mem_bytes;
         if (gpu_mem > 0) {
             const double frac = std::min(1.0, gpu_mem / std::max(1.0, ov_.mem_total));
-            r.draw_rect(Rect{comp.x, comp.y, comp.w * (float)frac, comp.h}, kPurple);
+            r.draw_rect(Rect{comp.x, comp.y, comp.w * (float)frac, comp.h}, kOrange);
         }
 
         fl::Flex srow;
@@ -283,7 +343,6 @@ void ProcessesPanel::draw(Renderer& r) {
     auto& group_bg_open_ = owner_.group_bg_open_;
     auto& group_front_hit_ = owner_.group_front_hit_;
     auto& group_bg_hit_ = owner_.group_bg_hit_;
-    auto& hover_proc_row_ = owner_.hover_proc_row_;
     auto& sel_proc_row_ = owner_.sel_proc_row_;
     auto& proc_row_hit_ = owner_.proc_row_hit_;
 
@@ -344,12 +403,13 @@ void ProcessesPanel::draw(Renderer& r) {
     const float group_h = 32;
     const Rect list_rc{x0, list_top, w, layout_.content.h - (list_top - layout_.content.y) - 8};
     r.set_scissor(list_rc);
+    r.draw_rect(list_rc, kRowBg);  // 整块列表背景（浅色），其余行只画深色交替，减少矩形数
 
     proc_row_hit_.clear();
     group_front_hit_ = Rect{}; group_bg_hit_ = Rect{};
 
     auto draw_group_header = [&](const Rect& rc, const std::string& label, bool open) {
-        r.draw_rect(rc, kRowBg);
+        r.draw_rect(rc, kHeadBg);
         fl::Flex gf;
         gf.dir = fl::Dir::Row;
         gf.pad = {10, 0, 10, 0};
@@ -360,13 +420,12 @@ void ProcessesPanel::draw(Renderer& r) {
         draw_text_in_rect(r, g[1], label, 14, kText, 0);
     };
 
-    auto draw_proc_row = [&](const sys::ProcInfo& p, int gi, float ry) {
+    auto draw_proc_row = [&](const sys::ProcInfo& p, int gi, float ry, int row_no) {
         const Rect row{x0, ry, w, row_h_};
         proc_row_hit_.push_back({row, gi});
-        const bool hov = (gi == hover_proc_row_);
         const bool sel = (gi == sel_proc_row_);
         if (sel) r.draw_rect(row, kSelBg);
-        else r.draw_rect(row, hov ? kHoverBg : ((gi % 2) ? kRowBg : kRowAltBg));
+        else if (row_no & 1) r.draw_rect(row, kRowAltBg);  // 偶数行沿用整块背景，只画深色行
         auto cl = col_rects(ry);
         fl::Flex nf;
         nf.dir = fl::Dir::Row;
@@ -396,20 +455,21 @@ void ProcessesPanel::draw(Renderer& r) {
             const float t = max_cpu > 0 ? (float)std::min(1.0, p.cpu_percent / max_cpu) : 0.0f;
             if (!missing && t > 0.01f) {
                 Color fc = usage_color(std::min(1.0, p.cpu_percent / 100.0));
-                r.draw_rect(cl[3], Color{fc.r, fc.g, fc.b, t});
+                r.draw_rect(cl[3], Color{fc.r, fc.g, fc.b, t * 0.75f});
             }
             draw_text_in_rect(r, cl[3], missing ? na : fmt_percent(p.cpu_percent), 13, kText, 1);
         }
         {
             const float t = max_mem > 0 ? (float)std::min(1.0, p.mem_bytes / max_mem) : 0.0f;
             if (!missing && t > 0.01f)
-                r.draw_rect(cl[4], Color{0.255f, 0.608f, 0.980f, t});
+                r.draw_rect(cl[4], Color{0.255f, 0.608f, 0.980f, t * 0.75f});
             draw_text_in_rect(r, cl[4], missing ? na : fmt_bytes(p.mem_bytes), 13, kSubText, 1);
         }
         draw_text_in_rect(r, cl[5], missing ? na : fmt_bytes(p.disk_read_bs + p.disk_write_bs) + "/s", 13, kDimText, 1);
     };
 
     float yy = list_rc.y - scroll_ + 2;
+    int row_no = 0;  // 列表行的显示序号（用于行背景交替，不随进程排序索引变化）
     {
         const Rect row{x0, yy, w, row_h_};
         r.draw_rect(row, kRowAltBg);
@@ -428,7 +488,8 @@ void ProcessesPanel::draw(Renderer& r) {
         if (group_front_open_)
             for (int gi : front_idx) {
                 if (yy + row_h_ > list_rc.y && yy < list_rc.y + list_rc.h)
-                    draw_proc_row(procs_[gi], gi, yy);
+                    draw_proc_row(procs_[gi], gi, yy, row_no);
+                ++row_no;
                 yy += row_h_;
             }
     }
@@ -440,7 +501,8 @@ void ProcessesPanel::draw(Renderer& r) {
         if (group_bg_open_)
             for (int gi : bg_idx) {
                 if (yy + row_h_ > list_rc.y && yy < list_rc.y + list_rc.h)
-                    draw_proc_row(procs_[gi], gi, yy);
+                    draw_proc_row(procs_[gi], gi, yy, row_no);
+                ++row_no;
                 yy += row_h_;
             }
     }

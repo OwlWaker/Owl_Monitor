@@ -50,7 +50,7 @@ void UiLayout::compute(float w, float h) {
         f.dir = fl::Dir::Column;
         f.pad = {8, 8, 8, 8};
         f.gap = 6;
-        f.items = {{.size = 72}, {.size = 72}, {.size = 72}};
+        f.items = {{.size = 72}, {.size = 72}, {.size = 72}, {.size = 72}};
         dev_items = f.layout(dev_list);
     }
 }

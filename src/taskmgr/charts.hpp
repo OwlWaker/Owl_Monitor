@@ -24,6 +24,8 @@ struct Charts {
     void draw_core_grid(Renderer& r, Rect area, int total_cores, int s_cores, int p_cores);
     // 面积 + 折线图：实线 + 线下方低透明填充（右对齐滚动）
     void draw_area_line(Renderer& r, Rect box, const std::vector<float>& data, Color line);
+    // 速率面积图：按数据最大值归一化高度（用于磁盘读/写速率等非百分比数据）
+    void draw_rate_line(Renderer& r, Rect box, const std::vector<float>& data, Color line);
     // 在大方框内画横向百分比参考线（25/50/75%）+ 滚动竖线
     void draw_reflines(Renderer& r, Rect box, int hist_size);
     // GPU 总体占用大方框

@@ -102,7 +102,6 @@ int app_run() {
     // Main event loop: poll events/input, update, draw and present
     double last = glfwGetTime();
     bool prev_down = false;
-    double last_mx = 0, last_my = 0;
     while (!glfwWindowShouldClose(window.get())) {
         glfwPollEvents();
         bool resized = false;
@@ -125,14 +124,12 @@ int app_run() {
         glfwGetWindowSize(window.get(), &ww, &wh);
         tm.input_text(g_typed.c_str(), g_backspace);
 
-        // 输入/光标/滚轮/输入法/尺寸变化 → 本帧需要重绘
+        // 输入/滚轮/输入法/尺寸变化 → 本帧需要重绘（鼠标移动不触发，悬停高亮不实时更新）
         const bool input_changed =
             resized ||
-            (mx != last_mx || my != last_my) ||
             pressed ||
             g_scroll_accum != 0.0 ||
             !g_typed.empty() || g_backspace;
-        last_mx = mx; last_my = my;
 
         // TaskManager 内部因数据刷新/动画需要重绘
         const bool tm_changed = tm.update((float)mx, (float)my, down, pressed, g_scroll_accum, dt);

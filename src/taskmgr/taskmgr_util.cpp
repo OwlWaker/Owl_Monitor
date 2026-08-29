@@ -8,7 +8,7 @@
 // Active palette definitions, refreshed from the macOS system appearance
 Color kNavBg, kCardBg, kBorder, kShadow, kRowBg, kRowAltBg, kHeadBg, kSelBg,
       kText, kSubText, kDimText, kAccent, kHoverBg, kTrack, kBlue, kGreen,
-      kSColor, kYellow, kRed, kPurple, kBoxBg, kDivider, kRefLine;
+      kSColor, kYellow, kOrange, kRed, kPurple, kBoxBg, kDivider, kRefLine;
 
 namespace theme {
 void update() {
@@ -20,7 +20,7 @@ void update() {
         kSubText = kSubTextDark; kDimText = kDimTextDark; kAccent = kAccentDark;
         kHoverBg = kHoverBgDark; kTrack = kTrackDark;     kBlue = kBlueDark;
         kGreen = kGreenDark;     kSColor = kSColorDark;   kYellow = kYellowDark;
-        kRed = kRedDark;         kPurple = kPurpleDark;   kBoxBg = kBoxBgDark;
+        kOrange = kOrangeDark;   kRed = kRedDark;         kPurple = kPurpleDark;   kBoxBg = kBoxBgDark;
         kDivider = kDividerDark; kRefLine = kRefLineDark;
     } else {
         kNavBg = kNavBgLight;    kCardBg = kCardBgLight;  kBorder = kBorderLight;
@@ -29,7 +29,7 @@ void update() {
         kSubText = kSubTextLight;kDimText = kDimTextLight;kAccent = kAccentLight;
         kHoverBg = kHoverBgLight;kTrack = kTrackLight;    kBlue = kBlueLight;
         kGreen = kGreenLight;    kSColor = kSColorLight;  kYellow = kYellowLight;
-        kRed = kRedLight;        kPurple = kPurpleLight;  kBoxBg = kBoxBgLight;
+        kOrange = kOrangeLight;  kRed = kRedLight;        kPurple = kPurpleLight;  kBoxBg = kBoxBgLight;
         kDivider = kDividerLight; kRefLine = kRefLineLight;
     }
 }

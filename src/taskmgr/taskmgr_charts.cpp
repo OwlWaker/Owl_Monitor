@@ -116,6 +116,33 @@ void Charts::draw_area_line(Renderer& r, Rect box, const std::vector<float>& dat
     }
 }
 
+// 速率面积图：按数据最大值归一化高度，用于磁盘读/写速率等非百分比数据。
+// Rate area chart: normalize height by the data max, for disk read/write rates etc.
+void Charts::draw_rate_line(Renderer& r, Rect box, const std::vector<float>& data, Color line) {
+    const int n = (int)data.size();
+    if (n <= 0) return;
+    float maxv = 0;
+    for (float v : data) maxv = std::max(maxv, v);
+    if (maxv <= 0.0f) maxv = 1.0f;
+    const float x0 = box.x + kChartPadX, w = box.w - kChartPadX * 2;
+    const float bottom = box.y + box.h - kChartPadY, max_h = box.h - kChartPadY * 2;
+    const int cols = std::max(1, (int)w);
+    const int used_cols = std::max(1, (int)std::ceil((float)(n - 1) / (float)(History::kHist - 1) * (float)cols));
+    const int left_gap = std::max(0, cols - used_cols);
+    const Color fill{line.r, line.g, line.b, 0.20f};
+    for (int px = left_gap; px < cols; ++px) {
+        const float fx = (float)(px - left_gap) / (float)std::max(1, used_cols - 1) * (float)(n - 1);
+        const int i0 = (int)fx;
+        const int i1 = std::min(i0 + 1, n - 1);
+        const float t = fx - (float)i0;
+        const float v = data[i0] + (data[i1] - data[i0]) * t;
+        const float y = bottom - (v / maxv) * max_h;
+        const float hh = bottom - y;
+        if (hh > 0) r.draw_rect(Rect{x0 + (float)px, y, 1, hh}, fill);
+        r.draw_rect(Rect{x0 + (float)px, y, 1, 1}, line);
+    }
+}
+
 // 完整网格：水平网格线（静态，25%/50%/75%）+ 滚动竖线（随刷新左移）。
 // 铺满整个图表区域；竖线随每次采样向左推进形成流动背景，横线固定用于读值。
 // Full grid: static horizontal lines (25/50/75%) plus scrolling vertical lines that

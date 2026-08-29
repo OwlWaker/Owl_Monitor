@@ -20,6 +20,8 @@ struct Overview {
     double mem_wired = 0.0;      // 联动内存：内核/驱动占用，不可换出
     double mem_compressed = 0.0; // 被压缩的内存（内存压缩器占用的页）
     double mem_cached = 0.0;     // 已缓存文件：文件缓存页（可回收）
+    double disk_read_bs = 0.0;   // 磁盘读速率（字节/秒，系统级）
+    double disk_write_bs = 0.0;  // 磁盘写速率（字节/秒，系统级）
     int    proc_count = 0;    // 进程总数
 };
 
@@ -89,6 +91,9 @@ private:
     // 每个进程上次的累计磁盘读写字节（用于计算磁盘速率）
     struct ProcDisk { int pid; uint64_t read = 0, write = 0; };
     std::vector<ProcDisk> prev_disk_;
+    // 系统级磁盘累计读写字节（用于计算总磁盘速率）
+    uint64_t prev_disk_read_ = 0, prev_disk_write_ = 0;
+    double prev_disk_time_ = 0;
 };
 
 // 各级缓存大小（字节），Apple 芯片 L1 分指令/数据

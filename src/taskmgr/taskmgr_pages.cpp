@@ -83,7 +83,7 @@ void TaskManager::draw_sidebar(Renderer& r) {
         // 结束进程按钮（顶部栏最右，圆角16、高32）；未选中进程时置灰，选中后高亮可点
         endbtn_rect_ = endbtn_rc;
         const bool has_sel = (sel_pid_ >= 0);
-        r.draw_rounded_rect(endbtn_rc, 16, has_sel ? (hover_endbtn_ ? kSelBg : kHoverBg) : kCardBg);
+        r.draw_rounded_rect(endbtn_rc, 16, has_sel ? kHoverBg : kCardBg);
         draw_text_in_rect(r, endbtn_rc, tr("结束进程", "End process"), 13, has_sel ? kText : kDimText, 1);
     }
 

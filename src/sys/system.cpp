@@ -93,6 +93,35 @@ std::string proc_name_str(int pid) {
     return n > 0 ? std::string(buf) : std::string();
 }
 
+// 读取系统级磁盘累计读写字节（IOBlockStorageDriver 的 Statistics 累计值）
+// Read the system-wide cumulative disk read/write bytes from IOKit.
+bool system_disk_bytes(uint64_t& read, uint64_t& write) {
+    read = write = 0;
+    io_iterator_t iter = 0;
+    if (IOServiceGetMatchingServices(kIOMainPortDefault, IOServiceMatching("IOBlockStorageDriver"), &iter) != KERN_SUCCESS)
+        return false;
+    io_object_t dev;
+    bool ok = false;
+    while ((dev = IOIteratorNext(iter))) {
+        CFMutableDictionaryRef props = nullptr;
+        if (IORegistryEntryCreateCFProperties(dev, &props, kCFAllocatorDefault, 0) == KERN_SUCCESS && props) {
+            CFDictionaryRef stats = (CFDictionaryRef)CFDictionaryGetValue(props, CFSTR("Statistics"));
+            if (stats && CFGetTypeID(stats) == CFDictionaryGetTypeID()) {
+                CFNumberRef rv = (CFNumberRef)CFDictionaryGetValue(stats, CFSTR("Bytes (Read)"));
+                CFNumberRef wv = (CFNumberRef)CFDictionaryGetValue(stats, CFSTR("Bytes (Written)"));
+                long long rr = 0, ww = 0;
+                if (rv && CFGetTypeID(rv) == CFNumberGetTypeID()) CFNumberGetValue(rv, kCFNumberLongLongType, &rr);
+                if (wv && CFGetTypeID(wv) == CFNumberGetTypeID()) CFNumberGetValue(wv, kCFNumberLongLongType, &ww);
+                read += (uint64_t)rr; write += (uint64_t)ww; ok = true;
+            }
+            CFRelease(props);
+        }
+        IOObjectRelease(dev);
+    }
+    IOObjectRelease(iter);
+    return ok;
+}
+
 } // namespace
 
 bool Sampler::init() {
@@ -101,6 +130,9 @@ bool Sampler::init() {
     sample_cores(warm);  // 预热每核快照，使首次真实采样即有有效差值
     prev_time_ = now_seconds();
     prev_proc_time_ = now_seconds();  // 预热进程采样时间戳
+    // 预热系统磁盘累计字节，使首次磁盘采样有有效差值
+    system_disk_bytes(prev_disk_read_, prev_disk_write_);
+    prev_disk_time_ = now_seconds();
     return true;
 }
 
@@ -137,6 +169,19 @@ bool Sampler::sample_overview(Overview& out) {
     // ---- 进程数 ----
     const int count = proc_listpids(PROC_ALL_PIDS, 0, nullptr, 0);
     out.proc_count = count > 0 ? count : 0;
+
+    // ---- 磁盘速率（系统级，IOBlockStorageDriver 累计字节差值）----
+    uint64_t dr = 0, dw = 0;
+    if (system_disk_bytes(dr, dw)) {
+        const double ddt = now - prev_disk_time_;
+        if (ddt > 0.001) {
+            out.disk_read_bs = (double)(dr - prev_disk_read_) / ddt;
+            out.disk_write_bs = (double)(dw - prev_disk_write_) / ddt;
+            if (out.disk_read_bs < 0) out.disk_read_bs = 0;
+            if (out.disk_write_bs < 0) out.disk_write_bs = 0;
+        }
+        prev_disk_read_ = dr; prev_disk_write_ = dw; prev_disk_time_ = now;
+    }
     return true;
 }
 
@@ -201,6 +246,12 @@ bool Sampler::sample_procs(std::vector<ProcInfo>& out) {
 
     const double now = now_seconds();
     const double dt = now - prev_proc_time_;
+    // 逻辑核数：用于把“相对单核”的进程 CPU% 按“占核数”口径放大（用户选择 C）
+    int logical_cores = 1;
+    {
+        size_t len = sizeof(logical_cores);
+        if (sysctlbyname("hw.logicalcpu", &logical_cores, &len, nullptr, 0) != 0) logical_cores = 1;
+    }
 
     double a = 0, w = 0, c = 0, cf = 0, mem_used = 0, mem_total = 0;
     memory_stats(a, w, c, cf, mem_used, mem_total);
@@ -258,7 +309,8 @@ bool Sampler::sample_procs(std::vector<ProcInfo>& out) {
         bool found = false;
         for (const ProcTick& pt : prev_proc_)
             if (pt.pid == (int)pid) { prev_cpu_seconds = (double)pt.cpu / 1e9; found = true; break; }
-        pi.cpu_percent = (found && dt > 0.001) ? (cpu_seconds - prev_cpu_seconds) / dt * 100.0 : 0.0;
+        // 用户选择 C：把“相对单核”的 CPU% 再乘以逻辑核数，得到“占核数”口径
+        pi.cpu_percent = (found && dt > 0.001) ? (cpu_seconds - prev_cpu_seconds) / dt * 100.0 * (double)logical_cores : 0.0;
         if (pi.cpu_percent < 0) pi.cpu_percent = 0;
 
         cur.push_back({(int)pid, cpu});

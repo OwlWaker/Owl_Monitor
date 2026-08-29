@@ -64,7 +64,7 @@ private:
     float nav_anim_ = 0;  // 顶部导航选中指示位置（0=性能，1=进程），用于白色矩形滑动动画
     float press_mx_ = 0, press_my_ = 0;  // 最近按下点（用于顶部栏拖动判定）
     bool dragging_win_ = false;          // 本帧已触发窗口拖动
-    // 性能页：选中设备索引 0=CPU 1=内存 2=GPU
+    // 性能页：选中设备索引 0=CPU 1=内存 2=磁盘 3=GPU
     int dev_sel_ = 0;
     int hover_dev_ = -1;            // 悬停的设备项索引
 
@@ -105,7 +105,8 @@ private:
     // 进程页状态
     float scroll_ = 0;       // 列表滚动偏移（像素）
     float row_h_ = 32;       // 进程行高
-    float refresh_timer_ = 0; // 距离上次刷新的时间（秒）
+    float refresh_timer_ = 0; // 距离上次性能页/历史刷新的时间（秒）
+    float proc_timer_ = 0;    // 距离上次进程列表刷新的时间（秒）
     // 进程页分组（前台进程 / 后台进程）展开状态与点击区域（仿 Win11 树形分组）
     bool group_front_open_ = true;
     bool group_bg_open_ = true;

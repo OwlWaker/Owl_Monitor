@@ -229,23 +229,14 @@ bool TaskManager::update(float mx, float my, bool mouse_down, bool mouse_pressed
         if (scroll_ > max_scroll) scroll_ = max_scroll;
     }
 
-    // 低频刷新：每 1 秒刷新一次（总体、每核、GPU、内存、进程）
-    // Low-frequency refresh: once per second (overview, cores, GPU, memory, processes)
+    // 低频刷新：性能页/总体/历史每 1 秒；进程列表每 5 秒
+    // Low-frequency refresh: overview/history every 1 s; process list every 5 s
     refresh_timer_ += dt;
     if (refresh_timer_ >= 1.0f) {
         refresh_timer_ = 0;
         repaint = true;   // 数据刷新，界面需更新
         sampler_.sample_overview(ov_);
-        sampler_.sample_procs(procs_);
-        apply_sort();
-        // 选中的进程若已退出/被结束则清除选中（用 PID 判断，避免索引错位）
-        if (sel_pid_ >= 0) {
-            bool found = false;
-            for (auto& p : procs_) if (p.pid == sel_pid_) { found = true; break; }
-            if (!found) { sel_pid_ = -1; sel_proc_row_ = -1; }
-        }
         // 每核使用率推入历史（平滑；逻辑核数变化时重建缓冲）
-        // Push smoothed per-core usage into the history (rebuild when the core count changes)
         std::vector<double> cores;
         if (sampler_.sample_cores(cores)) {
             if (hist_.core_hist.size() != cores.size()) {
@@ -258,10 +249,12 @@ bool TaskManager::update(float mx, float my, bool mouse_down, bool mouse_pressed
             History::push_smooth(hist_.cpu_hist, (float)(cores.empty() ? 0.0 : cpu_sum / (double)cores.size()));
         }
         // GPU 总体使用率推入历史（获取失败则沿用上次值）
-        // Push the smoothed overall GPU usage (keep the last value if unavailable)
         const double gu = sys::sample_gpu_utilization();
         if (gu >= 0) hist_.gpu_util = (float)gu;
         History::push_smooth(hist_.gpu_hist, hist_.gpu_util);
+        // 磁盘读/写速率推入历史（字节/秒，绘制时按最大值归一化）
+        History::push_smooth(hist_.disk_read_hist, (float)ov_.disk_read_bs);
+        History::push_smooth(hist_.disk_write_hist, (float)ov_.disk_write_bs);
         // 内存占用率与细分（活跃/非活跃/固定/压缩）同样平滑记录
         History::push_smooth(hist_.mem_hist, (float)ov_.mem_percent);
         const float mt = (float)std::max(1.0, ov_.mem_total);
@@ -271,6 +264,19 @@ bool TaskManager::update(float mx, float my, bool mouse_down, bool mouse_pressed
         History::push_smooth(hist_.mem_cached_hist,     (float)(ov_.mem_cached / mt * 100.0));
         // 累计采样次数 +1：竖线网格随每次采样往左推进一个数据点宽度
         ++hist_.sample_total;
+    }
+    proc_timer_ += dt;
+    if (proc_timer_ >= 5.0f) {
+        proc_timer_ = 0;
+        repaint = true;   // 进程列表更新
+        sampler_.sample_procs(procs_);
+        apply_sort();
+        // 选中的进程若已退出/被结束则清除选中（用 PID 判断，避免索引错位）
+        if (sel_pid_ >= 0) {
+            bool found = false;
+            for (auto& p : procs_) if (p.pid == sel_pid_) { found = true; break; }
+            if (!found) { sel_pid_ = -1; sel_proc_row_ = -1; }
+        }
     }
     return repaint;
 }

@@ -19,6 +19,8 @@ struct History {
     std::vector<float> mem_compressed_hist;         // 被压缩占比历史
     std::vector<float> mem_cached_hist;             // 已缓存文件占比历史
     std::vector<float> gpu_hist;                    // GPU 总体使用率历史
+    std::vector<float> disk_read_hist;              // 磁盘读速率历史（字节/秒）
+    std::vector<float> disk_write_hist;             // 磁盘写速率历史（字节/秒）
     float gpu_util = 0;                             // 当前 GPU 使用率（%）
     int sample_total = 0;                           // 累计采样次数（驱动竖线网格随采样滚动）
 
