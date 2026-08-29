@@ -1,0 +1,43 @@
+name: Build DMG Release
+
+# 在推送一个 v* 版本号 tag 时触发（例如 v1.0.0）
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+    env:
+      # CI 里 create-dmg 依赖 Finder AppleScript 授权会失败，强制走 hdiutil + Applications 快捷方式
+      OWL_USE_HDIUTIL: "1"
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install Vulkan SDK & tooling
+        run: |
+          brew install glslang
+          brew tap lunar/vulkan
+          brew install vulkan-sdk
+          # 让 CMake/着色器工具能定位到 Vulkan
+          export SDK=$(brew --prefix vulkan-sdk)
+          echo "VULKAN_SDK=$SDK" >> "$GITHUB_ENV"
+
+      - name: Configure & Build
+        run: |
+          cmake --preset macos
+          cmake --build --preset macos
+
+      - name: Package DMG
+        run: |
+          ./scripts/package_dmg.sh
+
+      - name: Upload DMG to Release
+        uses: softprops/action-gh-release@v2
+        with:
+          files: dist/OwlMonitor.dmg

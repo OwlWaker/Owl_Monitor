@@ -85,10 +85,19 @@ fi
 echo "==> 清除 quarantine 属性"
 if xattr -d com.apple.quarantine "$APP" 2>/dev/null; then :; fi
 
-# 6. 生成 DMG：优先 create-dmg（拖入 Applications 的安装窗口），否则回退 hdiutil
+# 6. 生成 DMG：默认优先 create-dmg（拖入 Applications 的安装窗口）；
+#    设置 OWL_USE_HDIUTIL=1 或未安装 create-dmg 时，用 hdiutil + Applications 快捷方式
+#    （避免 create-dmg 依赖 Finder AppleScript 授权，CI 环境不可用）。
 echo "==> 生成 $DMG"
 rm -f "$DMG"
-if command -v create-dmg >/dev/null 2>&1; then
+if [ -n "$OWL_USE_HDIUTIL" ] || ! command -v create-dmg >/dev/null 2>&1; then
+    STAGING="$ROOT/dist/staging"
+    rm -rf "$STAGING"; mkdir -p "$STAGING"
+    cp -R "$APP" "$STAGING/"
+    ln -s /Applications "$STAGING/Applications"
+    hdiutil create -volname "$APP_NAME" -srcfolder "$STAGING" -ov -format UDZO "$DMG" >/dev/null
+    rm -rf "$STAGING"
+else
     create-dmg \
         --volname "$APP_NAME" \
         --window-pos 200 120 --window-size 600 400 \
@@ -97,8 +106,6 @@ if command -v create-dmg >/dev/null 2>&1; then
         --icon "$APP_NAME.app" 150 120 \
         "$DMG" \
         "$APP" >/dev/null
-else
-    hdiutil create -volname "$APP_NAME" -srcfolder "$APP" -ov -format UDZO "$DMG" >/dev/null
 fi
 
 echo "完成：$DMG"
