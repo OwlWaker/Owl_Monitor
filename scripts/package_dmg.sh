@@ -16,6 +16,10 @@ APP_NAME="OwlMonitor"
 APP="$ROOT/dist/$APP_NAME.app"
 DMG="$ROOT/dist/$APP_NAME.dmg"
 
+# 应用版本号：优先从 Git tag（v0.1.3 -> 0.1.3）读取；无 tag 则用 1.0
+APP_VERSION=$(git -C "$ROOT" describe --tags --abbrev=0 2>/dev/null | sed 's/^v//')
+[ -z "$APP_VERSION" ] && APP_VERSION="1.0"
+
 # 图标源：icon/ 目录下第一个 PNG（可选；无则不带图标）
 ICON_SRC=""
 for f in "$ROOT"/icon/*.png "$ROOT"/icon/*.PNG; do
@@ -34,7 +38,7 @@ mkdir -p "$APP/Contents/MacOS" "$APP/Contents/Resources"
 cp "$BIN" "$APP/Contents/MacOS/owl_monitor"
 
 # 2. 写 Info.plist
-cat > "$APP/Contents/Info.plist" <<'PLIST'
+cat > "$APP/Contents/Info.plist" <<PLIST
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
@@ -43,8 +47,8 @@ cat > "$APP/Contents/Info.plist" <<'PLIST'
     <key>CFBundleName</key><string>OwlMonitor</string>
     <key>CFBundleDisplayName</key><string>OwlMonitor</string>
     <key>CFBundlePackageType</key><string>APPL</string>
-    <key>CFBundleShortVersionString</key><string>1.0</string>
-    <key>CFBundleVersion</key><string>1</string>
+    <key>CFBundleShortVersionString</key><string>$APP_VERSION</string>
+    <key>CFBundleVersion</key><string>$APP_VERSION</string>
     <key>LSMinimumSystemVersion</key><string>13.0</string>
     <key>NSHighResolutionCapable</key><true/>
 </dict></plist>
