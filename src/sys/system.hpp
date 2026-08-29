@@ -22,6 +22,8 @@ struct Overview {
     double mem_cached = 0.0;     // 已缓存文件：文件缓存页（可回收）
     double disk_read_bs = 0.0;   // 磁盘读速率（字节/秒，系统级）
     double disk_write_bs = 0.0;  // 磁盘写速率（字节/秒，系统级）
+    double disk_total = 0.0;     // 磁盘总容量（字节，主卷）
+    double disk_free = 0.0;      // 磁盘可用空间（字节，主卷）
     int    proc_count = 0;    // 进程总数
 };
 

@@ -26,7 +26,7 @@ void OverviewPanel::draw(Renderer& r) {
         dev_sel_ == 1 ? fmt_bytes(ov_.mem_total) :
         dev_sel_ == 2 ? tr("磁盘", "Disk") :
         gpu_.name;
-    draw_text_in_rect(r, Rect{layout_.dev_detail.x, layout_.dev_detail.y, layout_.dev_detail.w, 30}, dev_title, 18, kText, 0);
+    draw_text_in_rect(r, Rect{layout_.dev_detail.x, layout_.dev_detail.y, layout_.dev_detail.w, 40}, dev_title, 36, kText, 0);
     draw_device_detail(r, Rect{layout_.dev_detail.x, layout_.dev_detail.y + 36, layout_.dev_detail.w, layout_.dev_detail.h - 36});
 }
 
@@ -240,7 +240,11 @@ void OverviewPanel::draw_device_detail(Renderer& r, Rect rc) {
         charts_.draw_reflines(r, usage, (int)hist_.disk_read_hist.size());
         charts_.draw_rate_line(r, usage, hist_.disk_read_hist, kGreen);
         charts_.draw_rate_line(r, usage, hist_.disk_write_hist, kYellow);
-        draw_text_in_rect(r, Rect{usage.x + usage.w - 100, usage.y - 4, 96, 18}, fmt_bytes(ov_.disk_read_bs + ov_.disk_write_bs) + "/s", 12, kText, 2);
+        // 右上角显示该序列（读+写合并）的历史最大值
+        float disk_max = 0;
+        for (float v : hist_.disk_read_hist) disk_max = std::max(disk_max, v);
+        for (float v : hist_.disk_write_hist) disk_max = std::max(disk_max, v);
+        draw_text_in_rect(r, Rect{usage.x + usage.w - 100, usage.y - 4, 96, 18}, fmt_bytes(disk_max) + "/s", 12, kText, 2);
         draw_text_in_rect(r, Rect{usage.x, usage.y + usage.h + 2, 100, 16}, tr("60 秒", "60 s"), 11, kDimText, 0);
 
         draw_text_in_rect(r, comp_label, tr("读 / 写速率", "Read / Write rate"), 13, kDimText, 0);
@@ -269,8 +273,10 @@ void OverviewPanel::draw_device_detail(Renderer& r, Rect rc) {
         };
         disk_row(0, tr("读速率", "Read"), tr("写速率", "Write"),
                  fmt_bytes(ov_.disk_read_bs) + "/s", fmt_bytes(ov_.disk_write_bs) + "/s");
-        disk_row(1, tr("总速率", "Total"), tr("…", "…"),
-                 fmt_bytes(ov_.disk_read_bs + ov_.disk_write_bs) + "/s", "");
+        disk_row(1, tr("总速率", "Total"), tr("容量", "Capacity"),
+                 fmt_bytes(ov_.disk_read_bs + ov_.disk_write_bs) + "/s", fmt_bytes(ov_.disk_total));
+        disk_row(2, tr("已用", "Used"), tr("可用", "Available"),
+                 fmt_bytes(std::max(0.0, ov_.disk_total - ov_.disk_free)), fmt_bytes(ov_.disk_free));
     } else {
         // ===== GPU 详情 =====
         fl::Flex col;

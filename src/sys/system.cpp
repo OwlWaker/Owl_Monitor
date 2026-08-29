@@ -15,6 +15,7 @@
 #include <libproc.h>
 #include <sys/proc.h>
 #include <sys/resource.h>
+#include <sys/mount.h>
 #include <sys/sysctl.h>
 
 #include <CoreFoundation/CoreFoundation.h>
@@ -181,6 +182,14 @@ bool Sampler::sample_overview(Overview& out) {
             if (out.disk_write_bs < 0) out.disk_write_bs = 0;
         }
         prev_disk_read_ = dr; prev_disk_write_ = dw; prev_disk_time_ = now;
+    }
+    // 磁盘容量（主卷）
+    {
+        struct statfs fs{};
+        if (statfs("/", &fs) == 0) {
+            out.disk_total = (double)fs.f_blocks * (double)fs.f_bsize;
+            out.disk_free  = (double)fs.f_bavail * (double)fs.f_bsize;
+        }
     }
     return true;
 }
