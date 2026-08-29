@@ -102,9 +102,11 @@ int app_run() {
     // Main event loop: poll events/input, update, draw and present
     double last = glfwGetTime();
     bool prev_down = false;
+    double last_mx = 0, last_my = 0;
     while (!glfwWindowShouldClose(window.get())) {
         glfwPollEvents();
-        if (g_needs_resize) handle_resize();
+        bool resized = false;
+        if (g_needs_resize) { handle_resize(); resized = true; }
 
         // 读取鼠标状态：坐标、按住、本帧刚按下
         // Read mouse state: position, held, just pressed
@@ -122,14 +124,31 @@ int app_run() {
 
         glfwGetWindowSize(window.get(), &ww, &wh);
         tm.input_text(g_typed.c_str(), g_backspace);
+
+        // 输入/光标/滚轮/输入法/尺寸变化 → 本帧需要重绘
+        const bool input_changed =
+            resized ||
+            (mx != last_mx || my != last_my) ||
+            pressed ||
+            g_scroll_accum != 0.0 ||
+            !g_typed.empty() || g_backspace;
+        last_mx = mx; last_my = my;
+
+        // TaskManager 内部因数据刷新/动画需要重绘
+        const bool tm_changed = tm.update((float)mx, (float)my, down, pressed, g_scroll_accum, dt);
         g_typed.clear();
         g_backspace = false;
-        tm.update((float)mx, (float)my, down, pressed, g_scroll_accum, dt);
         g_scroll_accum = 0;
 
-        renderer.begin_frame(ww, wh);
-        tm.draw(renderer);
-        renderer.present();
+        // 脏帧：仅当界面内容可能变化时才绘制并呈现；静止时阻塞等待事件，避免无 vsync 空转
+        if (input_changed || tm_changed) {
+            renderer.begin_frame(ww, wh);
+            tm.draw(renderer);
+            renderer.present();
+        } else {
+            // 静止时阻塞至新事件或超时（限速），防止主线程空转导致 CPU 升高
+            glfwWaitEventsTimeout(0.02);
+        }
     }
     return 0;
 }

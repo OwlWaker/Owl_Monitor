@@ -30,10 +30,12 @@ public:
     void resize(float width, float height);
 
     // 每帧更新：处理鼠标/滚轮输入，并按需刷新系统数据。
+    // 返回本帧是否需要重绘（数据刷新或动画进行中）。
     // mx/my 光标坐标；mouse_down 当前是否按住；mouse_pressed 本帧是否刚按下；
     // scroll_delta 本帧滚轮增量；dt 帧间隔（秒）。
     // Per-frame update: handle mouse/scroll input and refresh system data when needed.
-    void update(float mx, float my, bool mouse_down, bool mouse_pressed, double scroll_delta, float dt);
+    // Returns whether a repaint is required (data refreshed or animation running).
+    bool update(float mx, float my, bool mouse_down, bool mouse_pressed, double scroll_delta, float dt);
     // 处理搜索框输入（每帧传入本帧新字符与退格标记）
     // Feed the search box input (typed text and backspace flag) each frame
     void input_text(const char* s, bool backspace);

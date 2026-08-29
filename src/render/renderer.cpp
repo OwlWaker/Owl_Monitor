@@ -436,8 +436,9 @@ void Renderer::draw_bitmap(int x, int y, int width, int height, const unsigned c
     const float dw = (float)width / bitmap_scale_;
     const float dh = (float)height / bitmap_scale_;
     const uint32_t offset = (uint32_t)bitmap_data_.size();
-    bitmap_data_.reserve(bitmap_data_.size() + (size_t)width * height);
-    for (int i = 0; i < width * height; ++i) bitmap_data_.push_back(alpha[i]);
+    const size_t n = (size_t)width * height;
+    bitmap_data_.reserve(bitmap_data_.size() + n);
+    bitmap_data_.insert(bitmap_data_.end(), alpha, alpha + n);  // 批量拷贝，替代逐像素 push_back
     const Rect rect = Rect{(float)x / bitmap_scale_ + off_.x, (float)y / bitmap_scale_ + off_.y, dw, dh};
     primitives_.push_back({{rect.x, rect.y, rect.w, rect.h}, {0, 0, 0, 0},
         {color.r, color.g, color.b, color.a * global_alpha_}, {0, 0, 0, 0},
@@ -449,8 +450,9 @@ void Renderer::draw_bitmap_rgba(float x, float y, const uint32_t* rgba, int pw, 
     const float dw = (float)pw / bitmap_scale_;
     const float dh = (float)ph / bitmap_scale_;
     const uint32_t offset = (uint32_t)bitmap_data_.size();
-    bitmap_data_.reserve(bitmap_data_.size() + (size_t)pw * ph);
-    for (int i = 0; i < pw * ph; ++i) bitmap_data_.push_back(rgba[i]);
+    const size_t n = (size_t)pw * ph;
+    bitmap_data_.reserve(bitmap_data_.size() + n);
+    bitmap_data_.insert(bitmap_data_.end(), rgba, rgba + n);  // 批量拷贝，替代逐像素 push_back
     const Rect rect{x + off_.x, y + off_.y, dw, dh};
     primitives_.push_back({{rect.x, rect.y, rect.w, rect.h}, {0, 0, 0, 0},
         {1, 1, 1, global_alpha_}, {0, 0, 0, 0},

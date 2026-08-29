@@ -77,8 +77,9 @@ void TaskManager::layout() {
     layout_.compute(w_, h_);
 }
 
-void TaskManager::update(float mx, float my, bool mouse_down, bool mouse_pressed, double scroll_delta, float dt) {
+bool TaskManager::update(float mx, float my, bool mouse_down, bool mouse_pressed, double scroll_delta, float dt) {
     (void)mouse_down;
+    bool repaint = false;
 
     // 结束进程按钮矩形：进程页顶部栏右侧（draw_sidebar 中每帧赋值；此处兜底保证首帧可命中）
     // Ensure the end-process button rect is valid even before the first draw
@@ -122,6 +123,7 @@ void TaskManager::update(float mx, float my, bool mouse_down, bool mouse_pressed
         constexpr float kNavSpeed = 14.0f;
         nav_anim_ += (target - nav_anim_) * std::min(1.0f, kNavSpeed * dt);
         if (std::fabs(nav_anim_ - target) < 0.001f) nav_anim_ = target;
+        else repaint = true;   // 导航滑块动画未结束，需要重绘
     }
 
     // 记录按下点；在顶部导航栏按住并移动超过阈值时触发窗口拖动
@@ -232,6 +234,7 @@ void TaskManager::update(float mx, float my, bool mouse_down, bool mouse_pressed
     refresh_timer_ += dt;
     if (refresh_timer_ >= 1.0f) {
         refresh_timer_ = 0;
+        repaint = true;   // 数据刷新，界面需更新
         sampler_.sample_overview(ov_);
         sampler_.sample_procs(procs_);
         apply_sort();
@@ -269,6 +272,7 @@ void TaskManager::update(float mx, float my, bool mouse_down, bool mouse_pressed
         // 累计采样次数 +1：竖线网格随每次采样往左推进一个数据点宽度
         ++hist_.sample_total;
     }
+    return repaint;
 }
 
 // 原生确认 sheet 回调（主线程）：根据用户选择继续结束进程流程。

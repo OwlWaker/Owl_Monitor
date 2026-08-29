@@ -37,9 +37,9 @@ void cpu_total_idle(uint64_t& total, uint64_t& idle) {
     mach_msg_type_number_t count = HOST_CPU_LOAD_INFO_COUNT;
     if (host_statistics(mach_host_self(), HOST_CPU_LOAD_INFO,
                         (host_info_t)&info, &count) == KERN_SUCCESS) {
-        total = info.cpu_ticks[CPU_STATE_USER] + info.cpu_ticks[CPU_STATE_SYSTEM] +
-                info.cpu_ticks[CPU_STATE_IDLE] + info.cpu_ticks[CPU_STATE_NICE];
-        idle  = info.cpu_ticks[CPU_STATE_IDLE];
+        total = (uint64_t)info.cpu_ticks[CPU_STATE_USER] + (uint64_t)info.cpu_ticks[CPU_STATE_SYSTEM] +
+                (uint64_t)info.cpu_ticks[CPU_STATE_IDLE] + (uint64_t)info.cpu_ticks[CPU_STATE_NICE];
+        idle  = (uint64_t)info.cpu_ticks[CPU_STATE_IDLE];
     } else {
         total = idle = 0;
     }
@@ -111,8 +111,11 @@ bool Sampler::sample_overview(Overview& out) {
     const double now = now_seconds();
     const double dt = now - prev_time_;
     if (dt > 0.001 && total > prev_total_) {
-        const double busy = (double)((total - prev_total_) - (idle - prev_idle_));
-        out.cpu_total = busy / (double)(total - prev_total_) * 100.0;
+        const uint64_t d_total = total - prev_total_;
+        const uint64_t d_idle  = idle - prev_idle_;
+        int64_t busy = (int64_t)(d_total - d_idle);  // 空闲可能因统计误差略超总时间，钳制非负
+        if (busy < 0) busy = 0;
+        out.cpu_total = (double)busy / (double)d_total * 100.0;
         if (out.cpu_total < 0) out.cpu_total = 0;
         if (out.cpu_total > 100) out.cpu_total = 100;
     } else {
@@ -150,14 +153,20 @@ bool Sampler::sample_cores(std::vector<double>& out) {
     out.clear();
     out.reserve(cpu_count);
     for (natural_t i = 0; i < cpu_count; ++i) {
-        const uint64_t total = loads[i].cpu_ticks[CPU_STATE_USER] + loads[i].cpu_ticks[CPU_STATE_SYSTEM] +
-                               loads[i].cpu_ticks[CPU_STATE_IDLE] + loads[i].cpu_ticks[CPU_STATE_NICE];
-        const uint64_t idle = loads[i].cpu_ticks[CPU_STATE_IDLE];
+        const uint64_t total = (uint64_t)loads[i].cpu_ticks[CPU_STATE_USER] +
+                               (uint64_t)loads[i].cpu_ticks[CPU_STATE_SYSTEM] +
+                               (uint64_t)loads[i].cpu_ticks[CPU_STATE_IDLE] +
+                               (uint64_t)loads[i].cpu_ticks[CPU_STATE_NICE];
+        const uint64_t idle = (uint64_t)loads[i].cpu_ticks[CPU_STATE_IDLE];
         double use = 0;
         if (i < prev_cores_.size() && total > prev_cores_[i].total) {
             const uint64_t d_total = total - prev_cores_[i].total;
             const uint64_t d_idle = idle - prev_cores_[i].idle;
-            if (d_total > 0) use = (double)(d_total - d_idle) / (double)d_total * 100.0;
+            if (d_total > 0) {
+                int64_t busy = (int64_t)(d_total - d_idle);  // 空闲可能略超总时间，钳制非负
+                if (busy < 0) busy = 0;
+                use = (double)busy / (double)d_total * 100.0;
+            }
             if (use < 0) use = 0; else if (use > 100) use = 100;
         }
         out.push_back(use);
@@ -165,9 +174,11 @@ bool Sampler::sample_cores(std::vector<double>& out) {
     // 保存本次快照供下次计算
     prev_cores_.resize(cpu_count);
     for (natural_t i = 0; i < cpu_count; ++i) {
-        prev_cores_[i].total = loads[i].cpu_ticks[CPU_STATE_USER] + loads[i].cpu_ticks[CPU_STATE_SYSTEM] +
-                               loads[i].cpu_ticks[CPU_STATE_IDLE] + loads[i].cpu_ticks[CPU_STATE_NICE];
-        prev_cores_[i].idle = loads[i].cpu_ticks[CPU_STATE_IDLE];
+        prev_cores_[i].total = (uint64_t)loads[i].cpu_ticks[CPU_STATE_USER] +
+                               (uint64_t)loads[i].cpu_ticks[CPU_STATE_SYSTEM] +
+                               (uint64_t)loads[i].cpu_ticks[CPU_STATE_IDLE] +
+                               (uint64_t)loads[i].cpu_ticks[CPU_STATE_NICE];
+        prev_cores_[i].idle = (uint64_t)loads[i].cpu_ticks[CPU_STATE_IDLE];
     }
     vm_deallocate(mach_task_self(), (vm_address_t)info, msg_count * sizeof(integer_t));
     return true;
