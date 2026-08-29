@@ -255,12 +255,6 @@ bool Sampler::sample_procs(std::vector<ProcInfo>& out) {
 
     const double now = now_seconds();
     const double dt = now - prev_proc_time_;
-    // 逻辑核数：用于把“相对单核”的进程 CPU% 按“占核数”口径放大（用户选择 C）
-    int logical_cores = 1;
-    {
-        size_t len = sizeof(logical_cores);
-        if (sysctlbyname("hw.logicalcpu", &logical_cores, &len, nullptr, 0) != 0) logical_cores = 1;
-    }
 
     double a = 0, w = 0, c = 0, cf = 0, mem_used = 0, mem_total = 0;
     memory_stats(a, w, c, cf, mem_used, mem_total);
@@ -312,14 +306,14 @@ bool Sampler::sample_procs(std::vector<ProcInfo>& out) {
 
         // 进程 CPU% = (本次累计 CPU 时间 - 上次) / 经过时间；时间为纳秒
         // Process CPU% = (current - previous CPU time) / elapsed time; unit is nanoseconds
+        // “相对单核”口径：100% = 该进程完全占满 1 个逻辑核
         const uint64_t cpu = has_ti ? (ti.pti_total_user + ti.pti_total_system) : 0;
         const double cpu_seconds = (double)cpu / 1e9;
         double prev_cpu_seconds = 0;
         bool found = false;
         for (const ProcTick& pt : prev_proc_)
             if (pt.pid == (int)pid) { prev_cpu_seconds = (double)pt.cpu / 1e9; found = true; break; }
-        // 用户选择 C：把“相对单核”的 CPU% 再乘以逻辑核数，得到“占核数”口径
-        pi.cpu_percent = (found && dt > 0.001) ? (cpu_seconds - prev_cpu_seconds) / dt * 100.0 * (double)logical_cores : 0.0;
+        pi.cpu_percent = (found && dt > 0.001) ? (cpu_seconds - prev_cpu_seconds) / dt * 100.0 : 0.0;
         if (pi.cpu_percent < 0) pi.cpu_percent = 0;
 
         cur.push_back({(int)pid, cpu});
