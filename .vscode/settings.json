@@ -1,0 +1,7 @@
+{
+    "C_Cpp.errorSquiggles": "disabled",
+    "cmake.cmakePath": "/Users/xiaowu/Library/Python/3.9/bin/cmake",
+    "terminal.integrated.env.osx": {
+        "PATH": "/opt/homebrew/bin:/Users/xiaowu/Library/Python/3.9/bin:${env:PATH}"
+    }
+}

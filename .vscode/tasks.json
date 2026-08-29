@@ -1,0 +1,19 @@
+{
+    "version": "2.0.0",
+    "tasks": [
+        {
+            "label": "build with CMake",
+            "type": "shell",
+            "command": "/Users/xiaowu/Library/Python/3.9/bin/cmake --preset macos && /Users/xiaowu/Library/Python/3.9/bin/cmake --build --preset macos",
+            "options": {
+                "cwd": "${workspaceFolder}"
+            },
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
+            "detail": "CMake: Configure + Build OwlMonitor",
+            "problemMatcher": ["$gcc"]
+        },
+    ]
+}

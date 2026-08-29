@@ -1,0 +1,18 @@
+# Build output
+target/
+build/
+
+# IDE
+*.user
+
+# Temp diff exports
+gitdiff.txt
+maindiff.txt
+
+# Packaging output
+dist/
+*.dmg
+
+# macOS
+.DS_Store
+
