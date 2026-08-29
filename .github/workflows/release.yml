@@ -19,6 +19,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Cache Homebrew
+        uses: actions/cache@v4
+        with:
+          # 缓存 brew 下载的包，避免每次全新 runner 重新下载 MoltenVK 等大包
+          path: ~/Library/Caches/Homebrew
+          key: brew-${{ runner.os }}-${{ hashFiles('.github/workflows/release.yml') }}
+          restore-keys: |
+            brew-${{ runner.os }}-
+
       - name: Install Vulkan SDK & tooling
         run: |
           # 全部来自 homebrew-core，避免第三方 tap（unstable 的 lunar/vulkan 在此环境拉不下来）
@@ -26,6 +35,15 @@ jobs:
           brew install vulkan-loader vulkan-headers molten-vk
           # 让 CMake / Future glslangValidator 能找到 Vulkan loader 与头文件
           echo "VULKAN_SDK=$(brew --prefix)" >> "$GITHUB_ENV"
+
+      - name: Cache FetchContent deps (GLFW)
+        uses: actions/cache@v4
+        with:
+          # 缓存 FetchContent 下载并编译好的 GLFW 源码/构建产物，避免每次重新 clone + 编译
+          path: build/macos/_deps
+          key: deps-${{ runner.os }}-${{ hashFiles('CMakeLists.txt', 'CMakePresets.json') }}
+          restore-keys: |
+            deps-${{ runner.os }}-
 
       - name: Configure & Build
         run: |
