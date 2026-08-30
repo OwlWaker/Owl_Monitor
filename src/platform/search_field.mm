@@ -60,6 +60,7 @@ void platform_install_search_field(GLFWwindow* window,
     NSSearchField* tf = [[NSSearchField alloc] initWithFrame:NSMakeRect(0, 0, 220, 32)];
     tf.placeholderString = system_language_zh() ? @"搜索名称、发布者或 PID" : @"Search name, publisher or PID";
     tf.font = [NSFont systemFontOfSize:12];
+    tf.controlSize = NSControlSizeLarge;
     tf.hidden = YES;
     tf.autoresizingMask = NSViewNotSizable;
 
