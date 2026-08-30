@@ -10,6 +10,8 @@ set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY "$<1:${CMAKE_SOURCE_DIR}/target>")
 
 add_executable(owl_monitor
     src/main.cpp
+    src/app/app.cpp
+    src/input/input.cpp
 
     src/sys/system.cpp
     src/sys/frontmost.mm
