@@ -209,10 +209,10 @@ bool TaskManager::update(float mx, float my, bool mouse_down, bool mouse_pressed
         if (scroll_ > max_scroll) scroll_ = max_scroll;
     }
 
-    // 低频刷新：性能页/总体/历史每 1 秒；进程列表每 5 秒
-    // Low-frequency refresh: overview/history every 1 s; process list every 5 s
+    // 低频刷新：性能页/总体/历史与进程列表每 2 秒
+    // Low-frequency refresh: overview/history and process list every 2 s
     refresh_timer_ += dt;
-    if (refresh_timer_ >= 1.0f) {
+    if (refresh_timer_ >= 2.0f) {
         refresh_timer_ = 0;
         repaint = true;   // 数据刷新，界面需更新
         sampler_.sample_overview(ov_);
@@ -246,7 +246,7 @@ bool TaskManager::update(float mx, float my, bool mouse_down, bool mouse_pressed
         ++hist_.sample_total;
     }
     proc_timer_ += dt;
-    if (proc_timer_ >= 5.0f) {
+    if (proc_timer_ >= 2.0f) {
         proc_timer_ = 0;
         repaint = true;   // 进程列表更新
         sampler_.sample_procs(procs_);
