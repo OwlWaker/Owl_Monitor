@@ -1,16 +1,24 @@
 {
-    "version": "0.2.0",
     "configurations": [
         {
-            "name": "OwlMonitor (macOS)",
-            "type": "cppdbg",
+            "type": "swift",
             "request": "launch",
-            "program": "${workspaceFolder}/target/owl_monitor",
             "args": [],
-            "stopAtEntry": false,
-            "cwd": "${userHome}",
-            "MIMode": "lldb",
-            "preLaunchTask": "build with CMake"
+            "cwd": "${workspaceFolder:Owl_Monitor}/OwlMonitorApp",
+            "name": "Debug OwlMonitorApp (OwlMonitorApp)",
+            "target": "OwlMonitorApp",
+            "configuration": "debug",
+            "preLaunchTask": "swift: Build Debug OwlMonitorApp (OwlMonitorApp)"
+        },
+        {
+            "type": "swift",
+            "request": "launch",
+            "args": [],
+            "cwd": "${workspaceFolder:Owl_Monitor}/OwlMonitorApp",
+            "name": "Release OwlMonitorApp (OwlMonitorApp)",
+            "target": "OwlMonitorApp",
+            "configuration": "release",
+            "preLaunchTask": "swift: Build Release OwlMonitorApp (OwlMonitorApp)"
         }
     ]
 }

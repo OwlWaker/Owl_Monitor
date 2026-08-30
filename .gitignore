@@ -1,6 +1,5 @@
-# Build output
-target/
-build/
+# Build output (SwiftPM)
+.build/
 
 # IDE
 *.user
