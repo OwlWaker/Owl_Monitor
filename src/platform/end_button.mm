@@ -58,12 +58,18 @@ void platform_install_end_button(GLFWwindow* window,
     btn.title = system_language_zh() ? @"结束进程" : @"End process";
     btn.font = [NSFont systemFontOfSize:13];
     btn.controlSize = NSControlSizeLarge;
-    // 液态玻璃按钮（macOS 26+）：自带玻璃质感、大圆角与系统悬停高亮；低版本回退到 Push
+    // 液态玻璃按钮（macOS 26+）：自带玻璃质感、大圆角与系统悬停高亮；低版本回退到 Push。
+    // NSBezelStyleGlass 是 macOS 26 才引入的枚举，旧 SDK（如 CI 的 Xcode 15.4）不存在，
+    // 用 SDK 版本条件编译以免旧 SDK 编译失败。
+#if defined(__MAC_OS_X_VERSION_MAX_ALLOWED) && __MAC_OS_X_VERSION_MAX_ALLOWED >= 260000
     if (@available(macOS 26.0, *)) {
         btn.bezelStyle = NSBezelStyleGlass;
     } else {
         btn.bezelStyle = NSBezelStylePush;
     }
+#else
+    btn.bezelStyle = NSBezelStylePush;
+#endif
     btn.hidden = YES;
     btn.autoresizingMask = NSViewNotSizable;
 
