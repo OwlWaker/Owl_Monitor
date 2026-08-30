@@ -47,22 +47,13 @@ void TaskManager::apply_sort() {
     }
 }
 
-void TaskManager::input_text(const char* s, bool backspace) {
-    if (!search_focus_) return;
-    if (backspace) {
-        // 删除一个完整的 UTF-8 字符（回退到上一个非续字节的起始字节）
-        if (!search_text_.empty()) {
-            size_t i = search_text_.size() - 1;
-            while (i > 0 && ((unsigned char)search_text_[i] & 0xC0) == 0x80) --i;
-            search_text_.erase(i);
-        }
-        return;
-    }
-    // 追加非控制字符的 UTF-8 字节（保留多字节，供中文显示与过滤）
-    for (const char* p = s; *p; ++p) {
-        const unsigned char c = (unsigned char)*p;
-        if (c < 0x20 || c == 0x7F) continue;
-        search_text_.push_back((char)c);
+// 原生搜索输入框文本变化回调入口：更新搜索关键字并标记需要重绘。
+// Search-text change entry from the native field: update the keyword and request a repaint.
+void TaskManager::set_search_text(const char* text) {
+    const std::string s = text ? text : "";
+    if (s != search_text_) {
+        search_text_ = s;
+        search_changed_ = true;
     }
 }
 
@@ -80,6 +71,13 @@ void TaskManager::layout() {
 bool TaskManager::update(float mx, float my, bool mouse_down, bool mouse_pressed, double scroll_delta, float dt) {
     (void)mouse_down;
     bool repaint = false;
+
+    // 原生搜索框文本变化时立即触发一次重绘，反映最新过滤结果
+    // Repaint as soon as the native search text changed, to reflect the new filter.
+    if (search_changed_) {
+        search_changed_ = false;
+        repaint = true;
+    }
 
     // 结束进程按钮矩形：进程页顶部栏右侧（draw_sidebar 中每帧赋值；此处兜底保证首帧可命中）
     // Ensure the end-process button rect is valid even before the first draw
@@ -138,35 +136,17 @@ bool TaskManager::update(float mx, float my, bool mouse_down, bool mouse_pressed
     // 顶部导航项悬停与点击
     hover_nav_perf_ = hit(layout_.nav_perf, mx, my);
     hover_nav_proc_ = hit(layout_.nav_proc, mx, my);
-    hover_endbtn_ = hit(endbtn_rect_, mx, my);
     // 性能页设备列表项悬停
     hover_dev_ = -1;
     for (int i = 0; i < (int)layout_.dev_items.size(); ++i)
         if (hit(layout_.dev_items[i], mx, my)) { hover_dev_ = i; break; }
 
     if (mouse_pressed) {
-        // 结束进程按钮：进程页且已选中进程时弹出确认框
-        if (page_ == Page::Processes && endbtn_rect_.w > 0 && hit(endbtn_rect_, mx, my)) {
-            if (sel_pid_ >= 0 && end_stage_ == EndStage::None) {
-                std::string nm;
-                for (auto& p : procs_) if (p.pid == sel_pid_) { nm = p.name; break; }
-                end_pid_ = sel_pid_;
-                end_msg_ = std::string(sys::tr("确定要结束进程", "End process")) + " \"" + nm + "\" (" + std::to_string(sel_pid_) + ")?";
-                end_stage_ = EndStage::Confirm;
-                platform_confirm_sheet(
-                    sys::tr("结束进程", "End process"), end_msg_.c_str(),
-                    sys::tr("结束", "End"), sys::tr("取消", "Cancel"),
-                    &TaskManager::end_confirm_done, this);
-            }
-        } else {
-            // 点击搜索框则聚焦，否则失焦
-            search_focus_ = hit(search_rect_, mx, my);
-            // 切换页面
-            if (hit(layout_.nav_perf, mx, my)) page_ = Page::Overview;
-            else if (hit(layout_.nav_proc, mx, my)) page_ = Page::Processes;
-            // 性能页切换设备
-            else if (page_ == Page::Overview && hover_dev_ >= 0) dev_sel_ = hover_dev_;
-        }
+        // 切换页面
+        if (hit(layout_.nav_perf, mx, my)) page_ = Page::Overview;
+        else if (hit(layout_.nav_proc, mx, my)) page_ = Page::Processes;
+        // 性能页切换设备
+        else if (page_ == Page::Overview && hover_dev_ >= 0) dev_sel_ = hover_dev_;
     }
 
     // 进程页：分组折叠 + 进程行悬停/选中
@@ -302,4 +282,22 @@ void TaskManager::end_confirm_done(int choice, void* user) {
         tm->sel_pid_ = -1; tm->sel_proc_row_ = -1;
         tm->end_stage_ = EndStage::None;
     }
+}
+
+// 原生结束进程按钮点击：进程页且已选中进程、无进行中流程时，弹出原生确认框。
+// Native end-process button click: on the processes page with a selected process and no
+// in-flight flow, show the native confirmation sheet.
+void TaskManager::on_end_button_clicked() {
+    if (page_ != Page::Processes) return;
+    if (end_stage_ != EndStage::None) return;
+    if (sel_pid_ < 0) return;
+    std::string nm;
+    for (auto& p : procs_) if (p.pid == sel_pid_) { nm = p.name; break; }
+    end_pid_ = sel_pid_;
+    end_msg_ = std::string(sys::tr("确定要结束进程", "End process")) + " \"" + nm + "\" (" + std::to_string(sel_pid_) + ")?";
+    end_stage_ = EndStage::Confirm;
+    platform_confirm_sheet(
+        sys::tr("结束进程", "End process"), end_msg_.c_str(),
+        sys::tr("结束", "End"), sys::tr("取消", "Cancel"),
+        &TaskManager::end_confirm_done, this);
 }

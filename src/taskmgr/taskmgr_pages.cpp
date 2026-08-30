@@ -6,8 +6,13 @@
 #include <string>
 
 #if defined(__APPLE__)
-// 避免引入 GLFW/Vulkan 头，仅前置声明（实现在 frontmost.mm）
-void platform_set_ime_rect(float x, float y, float w, float h);
+// 避免引入 GLFW/Vulkan 头，仅前置声明（实现在 search_field.mm / end_button.mm）
+void platform_set_search_field_rect(float x, float y, float w, float h);
+void platform_set_search_field_text(const char* text);
+void platform_set_search_field_visible(bool visible);
+void platform_set_end_button_rect(float x, float y, float w, float h);
+void platform_set_end_button_enabled(bool enabled);
+void platform_set_end_button_visible(bool visible);
 #endif
 
 // 界面语言翻译帮助（由 sys/system.hpp 提供，跟随系统语言）
@@ -65,26 +70,19 @@ void TaskManager::draw_sidebar(Renderer& r) {
     draw_text_in_rect(r, title_rc, tr("猫头鹰监看器", "Owl Monitor"), 15, kText, 0);
     // 搜索输入框与结束进程按钮：仅进程页显示，性能页隐藏
     if (page_ == Page::Processes) {
-        // 搜索输入框（最右，圆角16、高32）；记录矩形并支持输入
+        // 搜索输入框：位置交给原生 AppKit 输入框（不再由 C++ 自绘）；记录矩形供其定位。
         search_rect_ = search_rc;
-        r.draw_rounded_rect(search_rc, 16, search_focus_ ? kSelBg : kHoverBg);
-        const std::string shown = search_text_.empty() ? std::string(tr("搜索名称、发布者或 PID", "Search name, publisher or PID")) : search_text_;
-        draw_text_in_rect(r, Rect{search_rc.x + 12, search_rc.y, search_rc.w - 12, search_rc.h},
-                          shown, 12, search_text_.empty() ? kDimText : kText, 0);
-        if (search_focus_) {
-            const float tw = r.font().font_text_width(shown.c_str(), 12);
-            r.draw_rect(Rect{search_rc.x + 12 + tw, search_rc.y + 8, 1, search_rc.h - 16}, kText);
 #if defined(__APPLE__)
-            // 让输入法候选框定位到搜索框光标处（窗口内点坐标）；锚点放在搜索框底部，
-            // 使 macOS 候选框出现在输入框下方。
-            platform_set_ime_rect(search_rc.x + 12 + tw, search_rc.y + search_rc.h, 2, 1);
+        platform_set_search_field_rect(search_rc.x, search_rc.y, search_rc.w, search_rc.h);
+        platform_set_search_field_text(search_text_.c_str());
 #endif
-        }
-        // 结束进程按钮（顶部栏最右，圆角16、高32）；未选中进程时置灰，选中后高亮可点
+        // 结束进程按钮：位置交给原生 AppKit 按钮（不再由 C++ 自绘）；未选中进程时置灰。
+        // 高度比顶部栏小 8px，y 下移 4px 使其垂直居中。
         endbtn_rect_ = endbtn_rc;
-        const bool has_sel = (sel_pid_ >= 0);
-        r.draw_rounded_rect(endbtn_rc, 16, has_sel ? kHoverBg : kCardBg);
-        draw_text_in_rect(r, endbtn_rc, tr("结束进程", "End process"), 13, has_sel ? kText : kDimText, 1);
+#if defined(__APPLE__)
+        platform_set_end_button_rect(endbtn_rc.x, endbtn_rc.y + 4, endbtn_rc.w, endbtn_rc.h - 8);
+        platform_set_end_button_enabled(sel_pid_ >= 0);
+#endif
     }
 
     // 白色选中矩形：随 nav_anim_ 在两个导航项之间平滑移动
@@ -108,6 +106,13 @@ void TaskManager::draw_sidebar(Renderer& r) {
     };
     draw_nav(layout_.nav_perf, tr("性能", "Performance"), page_ == Page::Overview, hover_nav_perf_);
     draw_nav(layout_.nav_proc, tr("进程", "Processes"), page_ == Page::Processes, hover_nav_proc_);
+
+#if defined(__APPLE__)
+    // 仅进程页显示原生搜索输入框与结束进程按钮，性能页隐藏
+    // Show the native search field / end button only on the processes page.
+    platform_set_search_field_visible(page_ == Page::Processes);
+    platform_set_end_button_visible(page_ == Page::Processes);
+#endif
 }
 
 

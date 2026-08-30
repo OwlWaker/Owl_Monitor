@@ -15,6 +15,22 @@ const char* window_title() { return sys::tr("猫头鹰监看器", "Owl Monitor")
 // Window resize flag: set by the framebuffer callback, consumed by the main loop
 bool g_needs_resize = false;
 void framebuffer_size_callback(GLFWwindow*, int, int) { g_needs_resize = true; }
+
+// 原生搜索输入框文本变化回调：把文本写入 TaskManager 并标记需重绘（过滤进程列表）。
+// Native search-field text-change callback: forward the text to TaskManager so the
+// process list is re-filtered (and repainted).
+void on_search_text(const char* text, void* user) {
+    auto* tm = static_cast<TaskManager*>(user);
+    if (tm) tm->set_search_text(text ? text : "");
+}
+
+// 原生结束进程按钮点击回调：通知 TaskManager 走结束进程确认流程。
+// Native end-process button click callback: let TaskManager run the end-flow.
+void on_end_button_click(void* user) {
+    auto* tm = static_cast<TaskManager*>(user);
+    if (tm) tm->on_end_button_clicked();
+}
+
 }
 
 // 应用主循环：创建窗口 → 初始化渲染/字体/任务管理器 →
@@ -38,6 +54,10 @@ int app_run() {
 
     TaskManager tm;
     tm.init();
+    // 把原生 AppKit 搜索输入框挂到窗口，文本变化回调写入 TaskManager
+    // Attach the native AppKit search field to the window; text changes go to TaskManager
+    platform_install_search_field(window.get(), &on_search_text, &tm);
+    platform_install_end_button(window.get(), &on_end_button_click, &tm);
     int ww = 0, wh = 0;
     glfwGetWindowSize(window.get(), &ww, &wh);
     tm.resize((float)ww, (float)wh);
@@ -68,13 +88,11 @@ int app_run() {
         last = now;
 
         glfwGetWindowSize(window.get(), &ww, &wh);
-        tm.input_text(input.typed().c_str(), input.backspace());
 
         const bool input_changed =
             resized ||
             input.mouse_pressed() ||
-            input.scroll_delta() != 0.0 ||
-            !input.typed().empty() || input.backspace();
+            input.scroll_delta() != 0.0;
 
         const bool tm_changed = tm.update(
             (float)input.mouse_x(),

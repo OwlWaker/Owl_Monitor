@@ -38,9 +38,9 @@ OwlMonitor draws inspiration from the Windows 11 Task Manager: it groups process
 - **Colored app icons** for both foreground and background processes
 - Real-time **CPU / Memory / Disk** (disk shown as per-process I/O rate)
 - **Click column headers to sort** (descending first, toggling asc/desc on re-click; defaults to CPU usage descending)
-- **Search box** to filter by process name / PID
+- **Search box** (native AppKit `NSSearchField`) to filter by process name / PID
 - **Scrollbar + mouse-wheel clamping** (no blank space after collapsing groups)
-- **End process**: selecting a row reveals an **End process** button in the top bar; it shows a native confirmation sheet, first requests a graceful exit (SIGTERM), then offers a force end (SIGKILL) if it doesn't exit in time
+- **End process**: selecting a row reveals a **native AppKit Liquid Glass `NSButton`** in the top bar; it shows a native confirmation sheet, first requests a graceful exit (SIGTERM), then offers a force end (SIGKILL) if it doesn't exit in time
 - **Dark / light theme** (follows system) and **interface language follows system**
 
 ## Tech stack
@@ -51,6 +51,7 @@ OwlMonitor draws inspiration from the Windows 11 Task Manager: it groups process
 - **stb_truetype** (font rasterization)
 - Lightweight custom **flex layout engine** (`src/taskmgr/layout.hpp`)
 - System sampling: `libproc` / `mach` / `IOKit` / `AppKit` / `CoreGraphics`
+- Native AppKit controls for the search box (`NSSearchField`) and the end-process button (`NSBezelStyleGlass` `NSButton`)
 
 ## Build (macOS)
 
@@ -121,9 +122,9 @@ OwlMonitor 借鉴 Windows 11 任务管理器的体验，把进程按 **应用 / 
 - **彩色应用图标**（前台/后台进程均可读取）
 - 实时显示 **CPU / 内存 / 磁盘**（磁盘为 per-process I/O 速率）
 - **点击表头列排序**（首次从大到小，再次点击切换升/降序；默认按 CPU 占用率降序）
-- **搜索框**：按进程名 / PID 过滤
+- **搜索框**（原生 AppKit `NSSearchField`）：按进程名 / PID 过滤
 - **滚动条 + 滚轮滚动限位**（折叠分组后不会滚出空白）
-- **结束进程**：选中进程后顶部栏出现「结束进程」按钮；点击弹出系统原生确认框，先请求正常退出（SIGTERM），超时未退出可强制结束（SIGKILL）
+- **结束进程**：选中进程后顶部栏出现**原生 AppKit 液态玻璃按钮**；点击弹出系统原生确认框，先请求正常退出（SIGTERM），超时未退出可强制结束（SIGKILL）
 - **深浅色主题**（跟随系统）、**界面语言跟随系统**
 
 ## 技术栈
@@ -134,6 +135,7 @@ OwlMonitor 借鉴 Windows 11 任务管理器的体验，把进程按 **应用 / 
 - **stb_truetype**（字体栅格化）
 - 自研轻量 **flex 布局引擎**（`src/taskmgr/layout.hpp`）
 - 系统信息采集：`libproc` / `mach` / `IOKit` / `AppKit` / `CoreGraphics`
+- 搜索框（`NSSearchField`）与结束进程按钮（`NSBezelStyleGlass` `NSButton`）使用原生 AppKit 控件
 
 ## 构建（macOS）
 

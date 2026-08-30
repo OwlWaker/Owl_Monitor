@@ -29,6 +29,30 @@ void platform_show_error(const char* title, const char* msg);
 // Get the current GLFW window pointer (most recently created), for platform UI access
 GLFWwindow* platform_current_window();
 
+// 把原生搜索输入框（AppKit NSTextField）安装到当前 GLFW 窗口对应的 Cocoa 宿主窗口上。
+// on_text 在文本变化时回调（主线程，text 为输入框当前文本），user 为透传的调用者指针。
+// Install the native search field (AppKit NSTextField) on the Cocoa window backing a GLFW
+// window; on_text is called on the main thread with the current text when it changes.
+typedef void (*SearchTextCallback)(const char* text, void* user);
+void platform_install_search_field(GLFWwindow* window, SearchTextCallback on_text, void* user);
+// 更新搜索输入框位置与尺寸（窗口内点坐标，GLFW y 向下）。
+// Update the search field's position/size (in-window points, GLFW y down).
+void platform_set_search_field_rect(float x, float y, float w, float h);
+// 设置搜索输入框文本（用于初始化/清空）。
+// Set the search field's text (for initialization / clearing).
+void platform_set_search_field_text(const char* text);
+// 显示/隐藏搜索输入框（仅在进程页显示）。
+// Show/hide the search field (visible only on the processes page).
+void platform_set_search_field_visible(bool visible);
+
+// 原生结束进程按钮（AppKit NSButton）：安装、定位、可用态；点击经 on_click 回调（主线程）。
+// Native end-process button (AppKit NSButton): install, position, enable state; clicks
+// are delivered to on_click on the main thread.
+void platform_install_end_button(GLFWwindow* window, void (*on_click)(void* user), void* user);
+void platform_set_end_button_rect(float x, float y, float w, float h);
+void platform_set_end_button_enabled(bool enabled);
+void platform_set_end_button_visible(bool visible);
+
 // 以窗口 sheet（非阻塞）弹出原生确认框（macOS NSAlert）。
 // title/message 为弹窗标题与说明；ok_label/cancel_label 为按钮文字；
 // on_done 在主线程回调：choice=1 表示点击确认/OK，0 表示取消。

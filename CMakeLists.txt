@@ -1,5 +1,5 @@
 cmake_minimum_required(VERSION 3.20)
-project(OwlClient LANGUAGES CXX)
+project(OwlClient LANGUAGES CXX OBJCXX)
 
 find_package(Vulkan REQUIRED)
 find_program(GLSLANG_VALIDATOR NAMES glslangValidator REQUIRED)
@@ -28,6 +28,8 @@ add_executable(owl_monitor
 
     src/platform/platform.cpp
     src/platform/platform_alert.mm
+    src/platform/search_field.mm
+    src/platform/end_button.mm
 )
 
 # 着色器 GLSL 源码在 src/render/shader_sources.hpp 中（字符串常量）。
@@ -79,6 +81,13 @@ target_include_directories(owl_monitor PRIVATE
     ${Vulkan_INCLUDE_DIRS}
 )
 
+if(APPLE)
+    find_library(APPKIT_FRAMEWORK AppKit REQUIRED)
+    target_link_libraries(owl_monitor PRIVATE
+        ${APPKIT_FRAMEWORK}
+    )
+endif()
+
 include(FetchContent)
 FetchContent_Declare(glfw
     GIT_REPOSITORY https://github.com/glfw/glfw.git
@@ -96,7 +105,6 @@ if(APPLE)
     # macOS 系统信息：进程枚举/任务信息（libproc）+ GPU 硬件信息（IOKit framework）
     find_library(IOKIT_FRAMEWORK IOKit REQUIRED)
     # 前台应用识别 + 窗口应用枚举（frontmost.mm 用 NSWorkspace / CoreGraphics）
-    find_library(APPKIT_FRAMEWORK AppKit REQUIRED)
     find_library(COREGRAPHICS_FRAMEWORK CoreGraphics REQUIRED)
-    target_link_libraries(owl_monitor PRIVATE proc ${IOKIT_FRAMEWORK} ${APPKIT_FRAMEWORK} ${COREGRAPHICS_FRAMEWORK})
+    target_link_libraries(owl_monitor PRIVATE proc ${IOKIT_FRAMEWORK} ${COREGRAPHICS_FRAMEWORK})
 endif()

@@ -36,9 +36,12 @@ public:
     // Per-frame update: handle mouse/scroll input and refresh system data when needed.
     // Returns whether a repaint is required (data refreshed or animation running).
     bool update(float mx, float my, bool mouse_down, bool mouse_pressed, double scroll_delta, float dt);
-    // 处理搜索框输入（每帧传入本帧新字符与退格标记）
-    // Feed the search box input (typed text and backspace flag) each frame
-    void input_text(const char* s, bool backspace);
+    // 原生搜索输入框文本变化入口：更新关键字并标记需要重绘。
+    // Native search-field text-change entry: update the keyword and request a repaint.
+    void set_search_text(const char* text);
+    // 原生结束进程按钮点击入口：触发结束进程确认流程。
+    // Native end-process button click entry: start the end-process confirmation flow.
+    void on_end_button_clicked();
 
     // 绘制当前页面
     // Draw the current page
@@ -92,8 +95,7 @@ private:
     // 结束进程：顶部栏按钮矩形、选中 PID 与确认框流程图状态
     // End process: top-bar button rect, selected PID and the confirm-dialog state machine
     enum class EndStage { None, Confirm, ForceConfirm };  // None=无 Confirm=确认结束 ForceConfirm=确认强制结束
-    Rect endbtn_rect_;              // 结束进程按钮矩形（进程页顶部栏右侧）
-    bool hover_endbtn_ = false;     // 结束进程按钮悬停
+    Rect endbtn_rect_;              // 结束进程按钮矩形（进程页顶部栏右侧，用于定位原生按钮）
     int  sel_pid_ = -1;             // 当前选中进程 PID（用 PID 而非索引，避免刷新后错位）
     EndStage end_stage_ = EndStage::None;  // 当前结束流程状态（None=无 sheet；Confirm/ForceConfirm=sheet 等待回调）
     std::string end_msg_;           // 原生确认 sheet 的消息文本
@@ -122,7 +124,7 @@ private:
     std::vector<Rect> head_cols_;   // 表头各列命中矩形
     void apply_sort();              // 按当前排序列/方向排序 procs_
     // 搜索框：输入过滤
-    Rect search_rect_;              // 搜索框矩形（用于点击聚焦）
+    Rect search_rect_;              // 搜索框矩形（用于定位原生输入框）
     std::string search_text_;       // 搜索关键字
-    bool search_focus_ = false;     // 搜索框是否聚焦
+    bool search_changed_ = false;   // 搜索关键字是否变化（标记需重绘）
 };
