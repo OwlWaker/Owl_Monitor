@@ -18,6 +18,8 @@ The built-in macOS **Activity Monitor** cannot distinguish between **foreground 
 
 OwlMonitor draws inspiration from the Windows 11 Task Manager: it groups processes into **Apps / Background processes** and presents each process's resource usage with **colored icons + color bars / curves**, making resource consumption clear at a glance.
 
+> This project is a transitional prototype and proof of concept for the product direction. The long-term plan is to migrate the app to Swift and build a native macOS application with a more idiomatic system integration and UI implementation.
+
 ## Features
 
 ### Top navigation
@@ -98,6 +100,8 @@ src/
 macOS 官方「活动监视器」**无法区分前后台应用**（所有进程混在一起），进程的 CPU / 内存 / 磁盘等资源占用**只有数字**，缺乏直观的图形化展示，很难一眼看出「哪个应用在吃资源」。
 
 OwlMonitor 借鉴 Windows 11 任务管理器的体验，把进程按 **应用 / 后台进程** 分组，并用 **彩色图标 + 色块 / 曲线** 直观呈现每个进程的资源占用，让资源消耗一目了然。
+
+> 该项目目前仅作为过渡项目，用于验证产品方向与交互方案。后续计划会迁移到 Swift 语言，重写为原生 macOS 应用，以获得更自然的系统集成和更优的界面表现。
 
 ## 特性
 
