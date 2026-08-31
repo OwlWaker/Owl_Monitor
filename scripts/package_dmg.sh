@@ -67,7 +67,25 @@ echo "==> 制作 DMG"
 mkdir -p "$STAGE"
 cp -R "$APP" "$STAGE/"
 ln -s /Applications "$STAGE/Applications"
-hdiutil create -volname "$APP_NAME" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
+
+if [ -f "$APP/Contents/Resources/AppIcon.icns" ]; then
+    # 先生成可读写 DMG，挂载后写入卷图标，再转为压缩 DMG
+    TMP="$ROOT/dist/.OwlMonitor.tmp.dmg"
+    rm -f "$TMP" "$DMG"
+    hdiutil create -volname "$APP_NAME" -srcfolder "$STAGE" -ov -format UDRW "$TMP" >/dev/null
+    MOUNT=$(hdiutil attach "$TMP" -nobrowse -readwrite | grep -o '/Volumes/[^ ]*' | head -1)
+    if [ -n "$MOUNT" ]; then
+        cp "$APP/Contents/Resources/AppIcon.icns" "$MOUNT/.VolumeIcon.icns" 2>/dev/null || true
+        SetFile -a C "$MOUNT" 2>/dev/null || true
+        hdiutil detach "$MOUNT" >/dev/null 2>&1 || true
+    fi
+    hdiutil convert "$TMP" -format UDZO -o "$DMG" >/dev/null
+    rm -f "$TMP"
+else
+    rm -f "$DMG"
+    hdiutil create -volname "$APP_NAME" -srcfolder "$STAGE" -ov -format UDZO "$DMG" >/dev/null
+fi
+
 rm -rf "$APP" "$STAGE"
 
 echo "DMG: $DMG"
