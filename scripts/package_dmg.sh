@@ -63,6 +63,9 @@ if [ -n "$ICON_SRC" ]; then
     /usr/libexec/PlistBuddy -c "Set :CFBundleIconFile AppIcon" "$APP/Contents/Info.plist" >/dev/null
 fi
 
+echo "==> 代码签名（ad-hoc，避免未签名被判‘已损坏’）"
+codesign --force --deep --sign - "$APP"
+
 echo "==> 制作 DMG"
 mkdir -p "$STAGE"
 cp -R "$APP" "$STAGE/"
